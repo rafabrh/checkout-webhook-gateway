@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>Ativar AGENTE IA</title>
+    <style>
+        body { font-family: Arial, sans-serif; background:#0b0f1a; color:#fff; margin:0; padding:24px; }
+        .card { max-width:720px; margin:0 auto; background:#111a2e; border:1px solid #1f2b4a; border-radius:14px; padding:20px; }
+        .muted { color:#b7c2dd; }
+        .qr { margin-top:18px; display:flex; justify-content:center; }
+        img { max-width:340px; border-radius:12px; border:1px solid #2a3a63; }
+        .status { margin-top:12px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>Ativação do AGENTE IA</h2>
+    <p class="muted">Order: <b id="order"></b></p>
+    <p>Abra o WhatsApp → Aparelhos conectados → <b>Conectar</b> e escaneie o QR abaixo.</p>
+
+    <div class="qr" id="qrBox"></div>
+    <div class="status" id="status"></div>
+</div>
+
+<script>
+    const orderId = "[[${orderId}]]";
+    document.getElementById("order").innerText = orderId;
+
+    async function poll() {
+        const res = await fetch(`/public/pair/${orderId}`, { cache: "no-store" });
+        if (!res.ok) {
+            document.getElementById("status").innerText = "Sessão não encontrada. Aguarde ou contate suporte.";
+            return;
+        }
+        const data = await res.json();
+
+        document.getElementById("status").innerText = `Status: ${data.status}`;
+
+        const box = document.getElementById("qrBox");
+        box.innerHTML = "";
+
+        if (data.qrBase64) {
+            const img = document.createElement("img");
+            img.src = `data:image/png;base64,${data.qrBase64}`;
+            box.appendChild(img);
+        } else if (data.qrUrl) {
+            const img = document.createElement("img");
+            img.src = data.qrUrl;
+            box.appendChild(img);
+        } else {
+            box.innerHTML = "<p class='muted'>Gerando QR…</p>";
+        }
+    }
+
+    poll();
+    setInterval(poll, 2000);
+</script>
+</body>
+</html>

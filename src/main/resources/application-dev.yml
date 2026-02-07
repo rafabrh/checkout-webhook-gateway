@@ -1,0 +1,58 @@
+server:
+  port: 8080
+  forward-headers-strategy: framework
+  error:
+    include-message: always
+    include-exception: true
+    include-stacktrace: always
+    include-binding-errors: always
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: DEBUG
+    com.shkgroups: DEBUG
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/agent}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:abc123}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,loggers
+
+app:
+  api-key:
+    enabled: ${APP_API_KEY_ENABLED:false}
+    header: ${APP_API_KEY_HEADER:X-Api-Key}
+    key: ${APP_API_KEY_KEY:dev-key-123}
+
+  agent:
+    base-url: ${APP_AGENT_BASE_URL:http://localhost:8080}
+
+  mercadopago:
+    access-token: ${MP_ACCESS_TOKEN:}
+    base-url: ${MP_BASE_URL:https://api.mercadopago.com}
+    webhook-token: ${MP_WEBHOOK_TOKEN:tokenshark123}
+    n8n-webhook-url: ${N8N_MP_WEBHOOK_URL:https://n8n.shkgroups.com/webhook/shkgroupwpp}
+    notification-url: ${MP_NOTIFICATION_URL:https://agent.shkgroup.com/v1/payments/mercadopago/notification?token=TOKEN_STRONG}
+
+  evolution:
+    base-url: ${EVOLUTION_BASE_URL:}
+    api-key: ${EVOLUTION_API_KEY:}
+    instance-path-prefix: ${EVOLUTION_INSTANCE_PATH_PREFIX:/instance}
