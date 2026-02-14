@@ -6,16 +6,22 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.util.List;
 
 @RequiredArgsConstructor
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
+
+    private static final String ROLE = "ROLE_SERVICE";
 
     private final ApiKeyProperties props;
     private final AntPathMatcher matcher = new AntPathMatcher();
@@ -26,17 +32,16 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
         String path = request.getRequestURI();
         String ctx = request.getContextPath();
+
         if (ctx != null && !ctx.isBlank() && path.startsWith(ctx)) {
             path = path.substring(ctx.length());
         }
 
-        // públicos
-        if (matcher.match("/pair/**", path) || matcher.match("/public/**", path) || matcher.match("/dev/**", path)) return true;
-        if (matcher.match("/webhooks/**", path)) return true; // IMPORTANTE p/ Mercado Pago
+        if (matcher.match("/pair/**", path)) return true;
         if (matcher.match("/actuator/health", path) || matcher.match("/actuator/info", path)) return true;
+        if (matcher.match("/v1/payments/mercadopago/notification", path)) return true;
 
-        // protege /v1 e actuator
-        return !(matcher.match("/v1/**", path) || matcher.match("/actuator/**", path));
+        return !matcher.match("/v1/**", path);
     }
 
     @Override
@@ -44,21 +49,33 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             throws IOException, ServletException {
 
         String expected = props.key();
-        String got = req.getHeader(props.header());
+        String headerName = props.header();
 
         if (expected == null || expected.isBlank()) {
             res.setStatus(500);
-            res.setContentType("text/plain;charset=UTF-8");
+            res.setContentType(MediaType.TEXT_PLAIN_VALUE);
             res.getWriter().write("API key not configured");
             return;
         }
 
-        if (got == null || !MessageDigest.isEqual(expected.getBytes(StandardCharsets.UTF_8), got.getBytes(StandardCharsets.UTF_8))) {
+        String got = req.getHeader(headerName);
+
+        boolean ok = got != null && MessageDigest.isEqual(
+                expected.getBytes(StandardCharsets.UTF_8),
+                got.getBytes(StandardCharsets.UTF_8)
+        );
+
+        if (!ok) {
             res.setStatus(401);
-            res.setContentType("text/plain;charset=UTF-8");
+            res.setContentType(MediaType.TEXT_PLAIN_VALUE);
             res.getWriter().write("Unauthorized");
             return;
         }
+
+        var auth = new UsernamePasswordAuthenticationToken(
+                "service", null, List.of(new SimpleGrantedAuthority(ROLE))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
 
         chain.doFilter(req, res);
     }

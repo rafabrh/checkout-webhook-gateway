@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
@@ -25,20 +24,16 @@ public class MercadoPagoWebhookService {
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
 
-    @Transactional
     public MercadoPagoWebhookResponse process(MercadoPagoWebhookRequest req) {
         var token = (req != null && req.mp() != null) ? req.mp().token() : null;
         var paymentId = (req != null && req.mp() != null) ? req.mp().paymentId() : null;
         return process(token, paymentId);
     }
 
-    @Transactional
     public MercadoPagoWebhookResponse process(String token, String paymentId) {
 
         if (!isValidWebhookToken(token)) {
-            return new MercadoPagoWebhookResponse(
-                    MpDecision.IGNORE, null, null, "invalid_webhook_token"
-            );
+            return new MercadoPagoWebhookResponse(MpDecision.IGNORE, null, null, "invalid_webhook_token");
         }
 
         if (paymentId == null || paymentId.isBlank()) {
@@ -69,22 +64,20 @@ public class MercadoPagoWebhookService {
 
         var payment = mpClient.getPayment(paymentId);
 
+        return processApprovedPaymentInTx(paymentId, payment);
+    }
+
+    @Transactional
+    protected MercadoPagoWebhookResponse processApprovedPaymentInTx(String paymentId, MercadoPagoClient.MpPayment payment) {
+
         if (payment == null || payment.externalReference() == null || payment.externalReference().isBlank()) {
-            return new MercadoPagoWebhookResponse(
-                    MpDecision.IGNORE, null,
-                    new MercadoPagoWebhookResponse.PaymentRef(paymentId),
-                    "no_external_reference"
-            );
+            return new MercadoPagoWebhookResponse(MpDecision.IGNORE, null, new MercadoPagoWebhookResponse.PaymentRef(paymentId), "no_external_reference");
         }
 
         var orderId = payment.externalReference();
         var order = orderRepository.findByOrderId(orderId).orElse(null);
         if (order == null) {
-            return new MercadoPagoWebhookResponse(
-                    MpDecision.IGNORE, null,
-                    new MercadoPagoWebhookResponse.PaymentRef(paymentId),
-                    "order_not_found"
-            );
+            return new MercadoPagoWebhookResponse(MpDecision.IGNORE, null, new MercadoPagoWebhookResponse.PaymentRef(paymentId), "order_not_found");
         }
 
         if (order.getStatus() == OrderStatus.CANCELED) {
@@ -131,8 +124,6 @@ public class MercadoPagoWebhookService {
             order.setStatus(OrderStatus.PAID);
             order.touchUpdate();
             orderRepository.save(order);
-        } else {
-            log.info("Order {} already in status {} (keeping).", orderId, order.getStatus());
         }
 
         try {
@@ -156,7 +147,6 @@ public class MercadoPagoWebhookService {
 
     private boolean isValidWebhookToken(String got) {
         var expected = mpProps.getWebhookToken();
-
         if (expected == null || expected.isBlank()) {
             log.warn("mp webhook-token is not configured (app.mercadopago.webhook-token).");
             return false;

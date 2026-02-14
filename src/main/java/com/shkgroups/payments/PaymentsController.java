@@ -3,7 +3,6 @@ package com.shkgroups.payments;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.shkgroups.payments.dto.CheckoutCreateRequest;
 import com.shkgroups.payments.dto.CheckoutCreateResponse;
-import com.shkgroups.payments.dto.MercadoPagoWebhookRequest;
 import com.shkgroups.payments.dto.MercadoPagoWebhookResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +22,10 @@ public class PaymentsController {
         return checkoutService.createCheckout(req);
     }
 
-    @PostMapping("/mercadopago/webhook")
-    public MercadoPagoWebhookResponse mpWebhookFromN8n(@RequestBody @Valid MercadoPagoWebhookRequest req) {
-        return webhookService.process(req);
-    }
-
-    @PostMapping("/mercadopago/notification")
+    @RequestMapping(
+            value = "/mercadopago/notification",
+            method = {RequestMethod.POST, RequestMethod.GET}
+    )
     public MercadoPagoWebhookResponse mpNotification(
             @RequestParam(name = "token", required = false) String token,
             @RequestParam MultiValueMap<String, String> query,
@@ -39,32 +36,21 @@ public class PaymentsController {
     }
 
     private String extractPaymentId(JsonNode body, MultiValueMap<String, String> query) {
-
-        String fromQuery = firstNonBlank(
-                query.getFirst("data.id"),
-                query.getFirst("id")
-        );
+        String fromQuery = firstNonBlank(query.getFirst("data.id"), query.getFirst("id"));
         if (fromQuery != null) return fromQuery;
 
         if (body == null) return null;
 
         JsonNode dataId = body.path("data").path("id");
-        if (!dataId.isMissingNode() && dataId.isTextual() && !dataId.asText().isBlank()) {
+        if (!dataId.isMissingNode() && !dataId.isNull() && !dataId.asText().isBlank()) {
             return dataId.asText();
         }
-
-        if (!dataId.isMissingNode() && dataId.isNumber()) {
-            return dataId.asText();
-        }
-
         return null;
     }
 
     private String firstNonBlank(String... values) {
         if (values == null) return null;
-        for (String v : values) {
-            if (v != null && !v.isBlank()) return v;
-        }
+        for (String v : values) if (v != null && !v.isBlank()) return v;
         return null;
     }
 }

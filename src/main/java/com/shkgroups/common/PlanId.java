@@ -3,6 +3,9 @@ package com.shkgroups.common;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
 
 @Getter
 public enum PlanId {
@@ -20,17 +23,47 @@ public enum PlanId {
         this.price = price;
     }
 
-    public static PlanId from(String raw) {
-        if (raw == null || raw.isBlank()) throw new IllegalArgumentException("plan_is_required");
+    private static final Map<String, PlanId> LOOKUP = new HashMap<>();
 
-        String v = raw.trim().toLowerCase();
-
-        if (v.equals("start") || v.equals("agente_ia_star") || v.equals("agente-ia-start")) v = "agente_ia_start";
-        if (v.equals("pro") || v.equals("agente-ia-pro")) v = "agente_ia_pro";
-
+    static {
         for (var p : values()) {
-            if (p.id.equalsIgnoreCase(v)) return p;
+            // chaves "oficiais"
+            LOOKUP.put(normalize(p.id), p);
+            LOOKUP.put(normalize(p.name()), p);
+
+            // aliases curtos
+            if (p == AGENTE_IA_START) {
+                LOOKUP.put(normalize("start"), p);
+                LOOKUP.put(normalize("agente ia start"), p);
+                LOOKUP.put(normalize("agente_ia_start"), p);
+                LOOKUP.put(normalize("agente-ia-start"), p);
+            }
+            if (p == AGENTE_IA_PRO) {
+                LOOKUP.put(normalize("pro"), p);
+                LOOKUP.put(normalize("agente ia pro"), p);
+                LOOKUP.put(normalize("agente_ia_pro"), p);
+                LOOKUP.put(normalize("agente-ia-pro"), p);
+            }
         }
-        throw new IllegalArgumentException("invalid_plan: " + raw);
+    }
+
+    public static PlanId from(String raw) {
+        if (raw == null || raw.isBlank()) {
+            throw new IllegalArgumentException("plan_is_required");
+        }
+        var key = normalize(raw);
+        var plan = LOOKUP.get(key);
+        if (plan == null) {
+            throw new IllegalArgumentException("invalid_plan: " + raw);
+        }
+        return plan;
+    }
+
+    private static String normalize(String s) {
+        // padroniza: lower + troca separadores + remove lixo duplicado
+        var v = s.trim().toLowerCase(Locale.ROOT);
+        v = v.replace('-', '_').replace(' ', '_');
+        while (v.contains("__")) v = v.replace("__", "_");
+        return v;
     }
 }

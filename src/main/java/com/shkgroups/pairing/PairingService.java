@@ -38,6 +38,7 @@ public class PairingService {
                         .orderId(orderId)
                         .instance(instance)
                         .remoteJid(remoteJid)
+                        .rawToken(rawToken)
                         .tokenHash(tokenHash)
                         .status(PairingStatus.NEW)
                         .createdAt(now)
@@ -140,6 +141,29 @@ public class PairingService {
         }
 
     }
+    @Transactional
+    public PairingLink getOrCreateActive(String orderId, String instance, String remoteJid, Duration ttl) {
+        var now = OffsetDateTime.now();
+
+        var existingOpt = pairingRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId);
+        if (existingOpt.isPresent()) {
+            var s = existingOpt.get();
+
+            if (s.getStatus() == PairingStatus.PAIRED) {
+                throw new IllegalArgumentException("already_paired");
+            }
+
+            boolean notExpired = now.isBefore(s.getExpiresAt());
+            boolean reusableStatus = (s.getStatus() == PairingStatus.NEW || s.getStatus() == PairingStatus.READY || s.getStatus() == PairingStatus.FAILED);
+
+            if (notExpired && reusableStatus && s.getRawToken() != null && !s.getRawToken().isBlank()) {
+                return new PairingLink(s.getRawToken(), "/pair/" + s.getRawToken());
+            }
+        }
+
+        return create(orderId, instance, remoteJid, ttl);
+    }
+
 
     private static String generateToken() {
         byte[] bytes = new byte[RAW_TOKEN_BYTES];
@@ -158,4 +182,6 @@ public class PairingService {
     }
 
     public record PairingLink(String token, String urlPath) {}
+
+
 }

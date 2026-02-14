@@ -54,6 +54,10 @@ public class PairingSessionEntity {
     @Column(name = "updated_at", nullable = false)
     private OffsetDateTime updatedAt;
 
+    @Column(name = "raw_token", length = 256)
+    private String rawToken;
+
+
     @PrePersist
     void prePersist() {
         var now = OffsetDateTime.now();
