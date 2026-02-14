@@ -1,37 +1,29 @@
-HELP.md
-.gradle
-build/
-!gradle/wrapper/gradle-wrapper.jar
-!**/src/main/**/build/
-!**/src/test/**/build/
+# Maven/Gradle build
+/target/
+/build/
+/out/
+*.jar
+*.war
 
-### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
-bin/
-!**/src/main/**/bin/
-!**/src/test/**/bin/
+# IDEs
+/.idea/
+/*.iml
+/.classpath
+/.project
+/.settings/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-out/
-!**/src/main/**/out/
-!**/src/test/**/out/
+# OS
+.DS_Store
+Thumbs.db
 
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
+# Env / secrets
+.env
+.env.*
+*.pem
+*.p12
+*.jks
+*.keystore
 
-### VS Code ###
-.vscode/
+# Spring profiles locais/prod
+src/main/resources/application-*.yml
+!src/main/resources/application.yml
