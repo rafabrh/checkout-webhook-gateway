@@ -39,24 +39,21 @@ public class ProvisioningService {
             throw new IllegalArgumentException("order_not_paid");
         }
 
-        // garante que o payment existe
         paymentRepository.findByPaymentId(req.paymentId())
                 .orElseThrow(() -> new IllegalArgumentException("payment_not_found"));
 
-        // opcional: sanity check
         if (req.plan() != null && !req.plan().isBlank() && !req.plan().equalsIgnoreCase(order.getPlan())) {
             log.warn("Plan mismatch. req.plan={} order.plan={}", req.plan(), order.getPlan());
         }
 
-        // expira sessão anterior se existir
         pairingRepository.findByOrderId(order.getOrderId()).ifPresent(existing -> {
             if (existing.getStatus() != PairingStatus.PAIRED) {
                 existing.setStatus(PairingStatus.EXPIRED);
                 existing.touchUpdate();
+                pairingRepository.save(existing);
             }
         });
 
-        // cria nova sessão/token via PairingService
         var link = pairingService.create(
                 order.getOrderId(),
                 order.getInstance(),
@@ -64,16 +61,24 @@ public class ProvisioningService {
                 DEFAULT_TTL
         );
 
+        var session = pairingRepository.findTopByOrderIdOrderByCreatedAtDesc(order.getOrderId())
+                .orElseThrow(() -> new IllegalStateException("pairing_session_not_found_after_create"));
+
         var pairingUrl = agentProps.getBaseUrl() + link.urlPath();
         var messageText = "Pagamento confirmado ✅ Pareie aqui: " + pairingUrl;
 
-        // marca status PROVISIONED
         if (order.getStatus() == OrderStatus.PAID) {
             order.setStatus(OrderStatus.PROVISIONED);
             order.touchUpdate();
             orderRepository.save(order);
         }
 
-        return new ProvisionPairingResponse(order.getOrderId(), order.getRemoteJid(), pairingUrl, messageText);
+        return new ProvisionPairingResponse(
+                order.getOrderId(),
+                order.getRemoteJid(),
+                pairingUrl,
+                messageText,
+                session.getExpiresAt()
+        );
     }
 }

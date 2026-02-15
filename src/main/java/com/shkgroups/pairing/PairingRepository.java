@@ -8,8 +8,7 @@ public interface PairingRepository extends JpaRepository<PairingSessionEntity, L
 
     Optional<PairingSessionEntity> findByTokenHash(String tokenHash);
 
-    Optional<PairingSessionEntity> findByOrderId(String orderId);
-
     Optional<PairingSessionEntity> findTopByOrderIdOrderByCreatedAtDesc(String orderId);
 
+    Optional<PairingSessionEntity> findByOrderId(String orderId);
 }

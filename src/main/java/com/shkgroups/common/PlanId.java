@@ -27,11 +27,9 @@ public enum PlanId {
 
     static {
         for (var p : values()) {
-            // chaves "oficiais"
             LOOKUP.put(normalize(p.id), p);
             LOOKUP.put(normalize(p.name()), p);
 
-            // aliases curtos
             if (p == AGENTE_IA_START) {
                 LOOKUP.put(normalize("start"), p);
                 LOOKUP.put(normalize("agente ia start"), p);
@@ -60,7 +58,6 @@ public enum PlanId {
     }
 
     private static String normalize(String s) {
-        // padroniza: lower + troca separadores + remove lixo duplicado
         var v = s.trim().toLowerCase(Locale.ROOT);
         v = v.replace('-', '_').replace(' ', '_');
         while (v.contains("__")) v = v.replace("__", "_");

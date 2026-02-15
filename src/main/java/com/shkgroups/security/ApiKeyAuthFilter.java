@@ -6,13 +6,14 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -24,10 +25,13 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
     private static final String ROLE = "ROLE_SERVICE";
 
     private final ApiKeyProperties props;
+    private final Environment env;
+
     private final AntPathMatcher matcher = new AntPathMatcher();
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
+
         if (!props.enabled()) return true;
 
         String path = request.getRequestURI();
@@ -37,11 +41,18 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
             path = path.substring(ctx.length());
         }
 
-        if (matcher.match("/pair/**", path)) return true;
-        if (matcher.match("/actuator/health", path) || matcher.match("/actuator/info", path)) return true;
-        if (matcher.match("/v1/payments/mercadopago/notification", path)) return true;
+        boolean isDev = env.acceptsProfiles(Profiles.of("dev"));
+        boolean swaggerAllowed = isDev && (
+                matcher.match("/swagger-ui/**", path)
+                        || matcher.match("/swagger-ui.html", path)
+                        || matcher.match("/v3/api-docs/**", path)
+        );
 
-        return !matcher.match("/v1/**", path);
+        return swaggerAllowed
+                || matcher.match("/pair/**", path)
+                || matcher.match("/actuator/health", path)
+                || matcher.match("/actuator/info", path)
+                || matcher.match("/v1/payments/mercadopago/notification", path);
     }
 
     @Override
@@ -52,7 +63,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         String headerName = props.header();
 
         if (expected == null || expected.isBlank()) {
-            res.setStatus(500);
+            res.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             res.setContentType(MediaType.TEXT_PLAIN_VALUE);
             res.getWriter().write("API key not configured");
             return;
@@ -66,14 +77,16 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         );
 
         if (!ok) {
-            res.setStatus(401);
+            res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             res.setContentType(MediaType.TEXT_PLAIN_VALUE);
             res.getWriter().write("Unauthorized");
             return;
         }
 
         var auth = new UsernamePasswordAuthenticationToken(
-                "service", null, List.of(new SimpleGrantedAuthority(ROLE))
+                "service",
+                null,
+                List.of(new SimpleGrantedAuthority(ROLE))
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
 

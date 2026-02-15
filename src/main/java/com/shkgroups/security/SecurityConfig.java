@@ -4,8 +4,10 @@ import com.shkgroups.config.ApiKeyProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
@@ -15,32 +17,41 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final ApiKeyProperties apiKeyProps;
+    private final ApiKeyProperties props;
+    private final Environment env;
 
     @Bean
     public ApiKeyAuthFilter apiKeyAuthFilter() {
-        return new ApiKeyAuthFilter(apiKeyProps);
+        return new ApiKeyAuthFilter(props, env);
     }
 
     @Bean
-    SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http
+    public SecurityFilterChain filterChain(HttpSecurity http, ApiKeyAuthFilter apiKeyAuthFilter) throws Exception {
+        boolean isDev = env.acceptsProfiles(Profiles.of("dev"));
+
+        http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/pair/**", "/actuator/health", "/actuator/info").permitAll()
-                        .requestMatchers("/v1/payments/mercadopago/notification").permitAll()
-                        .requestMatchers("/v1/**").hasRole("SERVICE")
-                        .anyRequest().authenticated()
-                )
-                .addFilterBefore(apiKeyAuthFilter(), UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(eh -> eh
-                        .authenticationEntryPoint((req, res, ex) -> res.sendError(401))
-                        .accessDeniedHandler((req, res, ex) -> res.sendError(403))
-                )
-                .httpBasic(b -> b.disable())
-                .formLogin(f -> f.disable())
-                .build();
-    }
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(
+                            "/pair/**",
+                            "/actuator/health",
+                            "/actuator/info",
+                            "/v1/payments/mercadopago/notification"
+                    ).permitAll();
 
+                    if (isDev) {
+                        auth.requestMatchers(
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**"
+                        ).permitAll();
+                    }
+
+                    auth.anyRequest().authenticated();
+                })
+                .addFilterBefore(apiKeyAuthFilter, UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
 }

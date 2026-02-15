@@ -1,6 +1,3 @@
--- V3: Reconcilia pairing_sessions com PairingSessionEntity
-
--- 0) Se existir "instance_name" no legado, padroniza para "instance"
 DO $$
 BEGIN
   IF EXISTS (
@@ -14,7 +11,6 @@ ALTER TABLE pairing_sessions RENAME COLUMN instance_name TO instance;
 END IF;
 END $$;
 
--- 1) Colunas base (cria o que estiver faltando)
 DO $$
 BEGIN
   IF NOT EXISTS (
@@ -81,7 +77,6 @@ ALTER TABLE pairing_sessions ADD COLUMN updated_at timestamptz;
 END IF;
 END $$;
 
--- 2) Ajusta tipos/tamanhos (garante contrato)
 ALTER TABLE pairing_sessions
 ALTER COLUMN order_id TYPE varchar(64),
   ALTER COLUMN instance TYPE varchar(60),
@@ -90,25 +85,20 @@ ALTER COLUMN order_id TYPE varchar(64),
   ALTER COLUMN status TYPE varchar(32),
   ALTER COLUMN qr_url TYPE varchar(1024);
 
--- 3) Backfill inteligente
--- 3.1) instance: tenta puxar de orders.instance (melhor fonte)
 UPDATE pairing_sessions ps
 SET instance = o.instance
     FROM orders o
 WHERE ps.order_id = o.order_id
   AND (ps.instance IS NULL OR ps.instance = '');
 
--- 3.2) status: se estiver NULL, seta NEW (igual teu @PrePersist)
 UPDATE pairing_sessions
 SET status = 'NEW'
 WHERE status IS NULL OR status = '';
 
--- 3.3) expires_at: se estiver NULL, cria janela padrão (ex: 15 min)
 UPDATE pairing_sessions
 SET expires_at = now() + interval '15 minutes'
 WHERE expires_at IS NULL;
 
--- 3.4) created_at/updated_at
 UPDATE pairing_sessions
 SET created_at = now()
 WHERE created_at IS NULL;
@@ -117,7 +107,6 @@ UPDATE pairing_sessions
 SET updated_at = now()
 WHERE updated_at IS NULL;
 
--- 4) Agora sim: NOT NULL (depois do backfill)
 ALTER TABLE pairing_sessions
     ALTER COLUMN order_id SET NOT NULL,
 ALTER COLUMN instance SET NOT NULL,
@@ -127,10 +116,7 @@ ALTER COLUMN instance SET NOT NULL,
   ALTER COLUMN created_at SET NOT NULL,
   ALTER COLUMN updated_at SET NOT NULL;
 
--- 5) Índices com os MESMOS nomes do Entity
 CREATE UNIQUE INDEX IF NOT EXISTS idx_pairing_token_hash ON pairing_sessions(token_hash);
 CREATE INDEX IF NOT EXISTS idx_pairing_expires_at ON pairing_sessions(expires_at);
 
--- 6) (Opcional, mas eu recomendo MUITO) 1 sessão por pedido
--- evita múltiplas sessões por order_id e bugs de concorrência
 CREATE UNIQUE INDEX IF NOT EXISTS uq_pairing_order_id ON pairing_sessions(order_id);

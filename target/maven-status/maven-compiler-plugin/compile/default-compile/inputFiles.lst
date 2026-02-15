@@ -10,6 +10,7 @@ C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\config\Scheduling
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\config\WebClientConfig.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\orders\OrderEntity.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\orders\OrderRepository.java
+C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\pairing\PairingInternalController.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\pairing\PairingRepository.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\pairing\PairingService.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\pairing\PairingSessionEntity.java
@@ -19,9 +20,12 @@ C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\dto\Chec
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\dto\CheckoutCreateResponse.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\dto\MercadoPagoWebhookRequest.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\dto\MercadoPagoWebhookResponse.java
+C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\MercadoPagoPaymentTxService.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\MercadoPagoWebhookService.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\mp\MercadoPagoClient.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\MpDecision.java
+C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\MpStatusEvaluator.java
+C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\MpStatusEvaluatorTest.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\OrderStatus.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\PaymentRepository.java
 C:\repositorio\com.shkgroups.agent\src\main\java\com\shkgroups\payments\PaymentsController.java

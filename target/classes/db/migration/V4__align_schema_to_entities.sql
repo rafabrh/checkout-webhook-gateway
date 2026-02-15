@@ -1,12 +1,6 @@
--- V4__align_schema_to_entities.sql
--- Postgres 16+ / Flyway
--- Alinha schema com as entities atuais (idempotente e seguro)
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
--- ============================================================
--- 1) ORDERS
--- ============================================================
 CREATE TABLE IF NOT EXISTS orders (
                                       id            BIGSERIAL PRIMARY KEY,
                                       order_id      VARCHAR(64)  NOT NULL UNIQUE,
@@ -20,7 +14,6 @@ CREATE TABLE IF NOT EXISTS orders (
     updated_at    TIMESTAMPTZ  NOT NULL DEFAULT now()
     );
 
--- garante colunas (bases legadas)
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS plan          VARCHAR(64);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS channel       VARCHAR(32);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS instance      VARCHAR(64);
@@ -30,7 +23,6 @@ ALTER TABLE orders ADD COLUMN IF NOT EXISTS status        VARCHAR(32);
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS created_at    TIMESTAMPTZ;
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS updated_at    TIMESTAMPTZ;
 
--- normaliza tipos/tamanhos
 ALTER TABLE orders
 ALTER COLUMN plan          TYPE VARCHAR(64),
   ALTER COLUMN channel       TYPE VARCHAR(32),
@@ -39,11 +31,9 @@ ALTER COLUMN plan          TYPE VARCHAR(64),
   ALTER COLUMN customer_name TYPE VARCHAR(140),
   ALTER COLUMN status        TYPE VARCHAR(32);
 
--- backfill created/updated (se existirem nulos)
 UPDATE orders SET created_at = now() WHERE created_at IS NULL;
 UPDATE orders SET updated_at = now() WHERE updated_at IS NULL;
 
--- tenta backfill de remote_jid a partir de pairing_sessions (se existir)
 DO $do$
 BEGIN
   IF EXISTS (
@@ -63,7 +53,6 @@ END IF;
 END
 $do$;
 
--- valida antes do NOT NULL (pra falhar com mensagem clara)
 DO $do$
 BEGIN
   IF EXISTS (SELECT 1 FROM orders WHERE remote_jid IS NULL OR remote_jid = '') THEN
@@ -81,7 +70,6 @@ ALTER COLUMN plan       SET NOT NULL,
   ALTER COLUMN created_at SET NOT NULL,
   ALTER COLUMN updated_at SET NOT NULL;
 
--- trava valores do enum no banco (OrderStatus)
 DO $do$
 BEGIN
   IF EXISTS (SELECT 1 FROM orders WHERE status NOT IN ('CREATED','PAID','PROVISIONED','CANCELED')) THEN
@@ -99,9 +87,6 @@ END IF;
 END
 $do$;
 
--- ============================================================
--- 2) PAYMENTS
--- ============================================================
 CREATE TABLE IF NOT EXISTS payments (
                                         id         BIGSERIAL PRIMARY KEY,
                                         payment_id VARCHAR(64)   NOT NULL UNIQUE,
@@ -113,9 +98,6 @@ CREATE TABLE IF NOT EXISTS payments (
 
 CREATE INDEX IF NOT EXISTS ix_payments_order_id ON payments(order_id);
 
--- ============================================================
--- 3) PAIRING_SESSIONS
--- ============================================================
 CREATE TABLE IF NOT EXISTS pairing_sessions (
                                                 id         BIGSERIAL PRIMARY KEY,
                                                 order_id   VARCHAR(64)  NOT NULL,
@@ -130,7 +112,6 @@ CREATE TABLE IF NOT EXISTS pairing_sessions (
     updated_at TIMESTAMPTZ  NOT NULL DEFAULT now()
     );
 
--- legado: instance_name -> instance (só se existir)
 DO $do$
 BEGIN
   IF EXISTS (
@@ -145,7 +126,6 @@ END IF;
 END
 $do$;
 
--- garante colunas faltantes (bases legadas)
 ALTER TABLE pairing_sessions ADD COLUMN IF NOT EXISTS order_id   VARCHAR(64);
 ALTER TABLE pairing_sessions ADD COLUMN IF NOT EXISTS instance   VARCHAR(60);
 ALTER TABLE pairing_sessions ADD COLUMN IF NOT EXISTS remote_jid VARCHAR(80);
@@ -157,14 +137,12 @@ ALTER TABLE pairing_sessions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
 ALTER TABLE pairing_sessions ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ;
 ALTER TABLE pairing_sessions ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ;
 
--- legado: token cru -> token_hash e remove token (se existir)
 DO $do$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_schema='public' AND table_name='pairing_sessions' AND column_name='token'
   ) THEN
-    -- token_hash já garantido acima
     EXECUTE $sql$
 UPDATE pairing_sessions
 SET token_hash = encode(digest(token, 'sha256'), 'hex')
@@ -177,7 +155,6 @@ END IF;
 END
 $do$;
 
--- normaliza tipos/tamanhos
 ALTER TABLE pairing_sessions
 ALTER COLUMN order_id   TYPE VARCHAR(64),
   ALTER COLUMN instance   TYPE VARCHAR(60),
@@ -186,7 +163,6 @@ ALTER COLUMN order_id   TYPE VARCHAR(64),
   ALTER COLUMN status     TYPE VARCHAR(32),
   ALTER COLUMN qr_url     TYPE VARCHAR(1024);
 
--- backfills essenciais
 UPDATE pairing_sessions ps
 SET instance = o.instance
     FROM orders o
@@ -204,7 +180,6 @@ WHERE expires_at IS NULL;
 UPDATE pairing_sessions SET created_at = now() WHERE created_at IS NULL;
 UPDATE pairing_sessions SET updated_at = now() WHERE updated_at IS NULL;
 
--- valida antes de impor NOT NULL
 DO $do$
 BEGIN
   IF EXISTS (SELECT 1 FROM pairing_sessions WHERE order_id IS NULL OR order_id = '') THEN
@@ -238,7 +213,6 @@ ALTER COLUMN instance   SET NOT NULL,
   ALTER COLUMN created_at SET NOT NULL,
   ALTER COLUMN updated_at SET NOT NULL;
 
--- índices (com validação antes)
 DO $do$
 BEGIN
   IF EXISTS (
@@ -255,12 +229,8 @@ $do$;
 CREATE UNIQUE INDEX IF NOT EXISTS idx_pairing_token_hash ON pairing_sessions(token_hash);
 CREATE INDEX IF NOT EXISTS idx_pairing_expires_at ON pairing_sessions(expires_at);
 
--- ============================================================
--- 4) FKs (recomendado)
--- ============================================================
 DO $do$
 BEGIN
-  -- payments -> orders
   IF EXISTS (
     SELECT 1
       FROM payments p
@@ -278,7 +248,6 @@ ALTER TABLE payments
         FOREIGN KEY (order_id) REFERENCES orders(order_id);
 END IF;
 
-  -- pairing_sessions -> orders
   IF EXISTS (
     SELECT 1
       FROM pairing_sessions ps

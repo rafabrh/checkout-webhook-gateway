@@ -13,13 +13,9 @@ import java.nio.charset.StandardCharsets;
 public class MercadoPagoProperties {
 
     private String accessToken;
-
     private String baseUrl = "https://api.mercadopago.com";
-
     private String n8nWebhookUrl;
-
     private String webhookToken;
-
     private String notificationUrl;
     private String staticCheckoutUrl;
 

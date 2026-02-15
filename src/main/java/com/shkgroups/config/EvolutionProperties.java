@@ -7,7 +7,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Getter @Setter
 @ConfigurationProperties(prefix = "app.evolution")
 public class EvolutionProperties {
-    private String baseUrl;   // https://evo.seudominio.com
+    private String baseUrl;   // https://evo.dominio.com
     private String apiKey;
     private String instancePathPrefix = "/instance";
 }

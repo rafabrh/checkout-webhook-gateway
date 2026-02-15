@@ -1,4 +1,4 @@
-# Maven/Gradle build
+# Maven
 /target/
 /build/
 /out/
@@ -25,5 +25,13 @@ Thumbs.db
 *.keystore
 
 # Spring profiles locais/prod
-src/main/resources/application-*.yml
-!src/main/resources/application.yml
+# Maven build output
+/target/
+
+# IDE
+/.idea/
+/*.iml
+
+# Spring profiles locais/dev
+/src/main/resources/application-dev.yml
+/src/main/resources/application-local.yml

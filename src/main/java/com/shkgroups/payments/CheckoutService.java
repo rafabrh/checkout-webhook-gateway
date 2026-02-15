@@ -72,7 +72,6 @@ public class CheckoutService {
         );
 
         var created = mpClient.createPreference(pref);
-
         var checkoutUrl = created.initPoint();
         var messageText = "Segue seu link de pagamento (Pix/Cartão): " + checkoutUrl;
 
