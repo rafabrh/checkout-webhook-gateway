@@ -1,22 +1,18 @@
-# Maven
 /target/
 /build/
 /out/
 *.jar
 *.war
 
-# IDEs
 /.idea/
 /*.iml
 /.classpath
 /.project
 /.settings/
 
-# OS
 .DS_Store
 Thumbs.db
 
-# Env / secrets
 .env
 .env.*
 *.pem
@@ -24,14 +20,10 @@ Thumbs.db
 *.jks
 *.keystore
 
-# Spring profiles locais/prod
-# Maven build output
 /target/
 
-# IDE
 /.idea/
 /*.iml
 
-# Spring profiles locais/dev
 /src/main/resources/application-dev.yml
 /src/main/resources/application-local.yml
