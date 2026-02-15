@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -33,19 +34,14 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers(
-                            "/pair/**",
-                            "/actuator/health",
-                            "/actuator/info",
-                            "/v1/payments/mercadopago/notification"
-                    ).permitAll();
+                    auth.requestMatchers("/pair/**", "/actuator/health", "/actuator/info")
+                            .permitAll();
+                    auth.requestMatchers(HttpMethod.POST, "/v1/payments/mercadopago/notification")
+                            .permitAll();
 
                     if (isDev) {
-                        auth.requestMatchers(
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**"
-                        ).permitAll();
+                        auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**")
+                                .permitAll();
                     }
 
                     auth.anyRequest().authenticated();

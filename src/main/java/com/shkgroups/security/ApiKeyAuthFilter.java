@@ -14,6 +14,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -48,11 +49,17 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
                         || matcher.match("/v3/api-docs/**", path)
         );
 
-        return swaggerAllowed
-                || matcher.match("/pair/**", path)
-                || matcher.match("/actuator/health", path)
-                || matcher.match("/actuator/info", path)
-                || matcher.match("/v1/payments/mercadopago/notification", path);
+        boolean actuatorAllowed =
+                matcher.match("/actuator/health", path) ||
+                        matcher.match("/actuator/info", path);
+
+        boolean pairingAllowed = matcher.match("/pair/**", path);
+
+        boolean mpWebhookAllowed =
+                matcher.match("/v1/payments/mercadopago/notification", path)
+                        && "POST".equalsIgnoreCase(request.getMethod());
+
+        return swaggerAllowed || actuatorAllowed || pairingAllowed || mpWebhookAllowed;
     }
 
     @Override
@@ -90,6 +97,10 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        chain.doFilter(req, res);
+        try {
+            chain.doFilter(req, res);
+        } finally {
+            SecurityContextHolder.clearContext();
+        }
     }
 }
