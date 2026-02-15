@@ -4,14 +4,17 @@ WORKDIR /workspace
 COPY pom.xml .
 RUN mvn -B -DskipTests dependency:go-offline
 
-# código
 COPY . .
 RUN mvn -B -DskipTests package
 
 FROM eclipse-temurin:21-jre
 WORKDIR /app
 
-COPY --from=build /workspace/target/*.jar /app/app.jar
+RUN addgroup --system app && adduser --system --ingroup app app
+USER app
 
+COPY --from=build /workspace/target/*.jar /app/app.jar
 EXPOSE 8080
-ENTRYPOINT ["sh","-c","java -jar /app/app.jar"]
+
+ENV JAVA_OPTS="-XX:MaxRAMPercentage=75 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"
+ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar /app/app.jar"]

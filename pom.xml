@@ -21,6 +21,8 @@
     <properties>
         <java.version>21</java.version>
         <springdoc.version>2.8.15</springdoc.version>
+        <mercadopago.sdk.version>2.8.0</mercadopago.sdk.version>
+        <commons-beanutils.version>1.9.4</commons-beanutils.version>
     </properties>
 
     <dependencyManagement>
@@ -59,6 +61,10 @@
 
         <dependency>
             <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
 
@@ -81,7 +87,7 @@
         <dependency>
             <groupId>com.mercadopago</groupId>
             <artifactId>sdk-java</artifactId>
-            <version>2.8.0</version>
+            <version>${mercadopago.sdk.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-beanutils</groupId>
@@ -101,19 +107,13 @@
         <dependency>
             <groupId>commons-beanutils</groupId>
             <artifactId>commons-beanutils</artifactId>
-            <version>1.11.0</version>
+            <version>${commons-beanutils.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.18.0</version>
         </dependency>
 
         <dependency>
@@ -125,10 +125,15 @@
             <groupId>org.springframework.retry</groupId>
             <artifactId>spring-retry</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
         </dependency>
 
         <dependency>
@@ -150,6 +155,9 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <layers enabled="true"/>
+                </configuration>
             </plugin>
         </plugins>
     </build>
