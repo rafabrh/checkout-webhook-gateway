@@ -1,5 +1,6 @@
 package com.shkgroups.payments;
 
+import com.shkgroups.payments.domain.MpDecision;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;

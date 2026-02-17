@@ -1,11 +1,11 @@
 package com.shkgroups.provisioning;
 
-import com.shkgroups.config.AgentProperties;
+import com.shkgroups.config.properties.AgentProperties;
 import com.shkgroups.orders.OrderRepository;
 import com.shkgroups.pairing.PairingRepository;
 import com.shkgroups.pairing.PairingService;
 import com.shkgroups.pairing.PairingStatus;
-import com.shkgroups.payments.OrderStatus;
+import com.shkgroups.orders.OrderStatus;
 import com.shkgroups.payments.PaymentRepository;
 import com.shkgroups.provisioning.dto.ProvisionPairingRequest;
 import com.shkgroups.provisioning.dto.ProvisionPairingResponse;

@@ -1,6 +1,7 @@
 package com.shkgroups.payments;
 
-import com.shkgroups.config.MercadoPagoProperties;
+import com.shkgroups.config.properties.MercadoPagoProperties;
+import com.shkgroups.payments.domain.MpDecision;
 import com.shkgroups.payments.dto.MercadoPagoWebhookRequest;
 import com.shkgroups.payments.dto.MercadoPagoWebhookResponse;
 import com.shkgroups.payments.mp.MercadoPagoClient;
@@ -23,7 +24,7 @@ public class MercadoPagoWebhookService {
     public MercadoPagoWebhookResponse process(MercadoPagoWebhookRequest req) {
         var token = (req != null && req.mp() != null) ? req.mp().token() : null;
         var paymentId = (req != null && req.mp() != null) ? req.mp().paymentId() : null;
-        return process(token, paymentId);
+            return process(token, paymentId);
     }
 
     public MercadoPagoWebhookResponse process(String token, String paymentId) {

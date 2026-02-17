@@ -1,4 +1,4 @@
-package com.shkgroups.config;
+package com.shkgroups.config.properties;
 
 import lombok.Getter;
 import lombok.Setter;

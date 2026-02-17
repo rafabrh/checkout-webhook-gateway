@@ -1,7 +1,7 @@
 package com.shkgroups.payments.mp;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.shkgroups.config.MercadoPagoProperties;
+import com.shkgroups.config.properties.MercadoPagoProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;

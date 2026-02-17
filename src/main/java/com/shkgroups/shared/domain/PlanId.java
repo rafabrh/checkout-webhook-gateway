@@ -1,4 +1,4 @@
-package com.shkgroups.common;
+package com.shkgroups.shared.domain;
 
 import lombok.Getter;
 

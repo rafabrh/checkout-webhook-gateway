@@ -1,6 +1,5 @@
 package com.shkgroups.orders;
 
-import com.shkgroups.payments.OrderStatus;
 import jakarta.persistence.*;
 import lombok.*;
 

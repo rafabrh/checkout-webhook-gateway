@@ -1,6 +1,6 @@
 package com.shkgroups.security;
 
-import com.shkgroups.config.ApiKeyProperties;
+import com.shkgroups.config.properties.ApiKeyProperties;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -24,10 +24,8 @@ import java.util.List;
 public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
     private static final String ROLE = "ROLE_SERVICE";
-
     private final ApiKeyProperties props;
     private final Environment env;
-
     private final AntPathMatcher matcher = new AntPathMatcher();
 
     @Override

@@ -1,7 +1,6 @@
-package com.shkgroups.config;
+package com.shkgroups.config.properties;
 
 import jakarta.validation.constraints.AssertTrue;
-import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 

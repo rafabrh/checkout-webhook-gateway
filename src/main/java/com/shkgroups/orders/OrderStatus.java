@@ -1,4 +1,4 @@
-package com.shkgroups.payments;
+package com.shkgroups.orders;
 
 public enum OrderStatus {
     CREATED,

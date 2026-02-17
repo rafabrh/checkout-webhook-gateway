@@ -1,5 +1,7 @@
 package com.shkgroups.config;
 
+import com.shkgroups.config.properties.EvolutionProperties;
+import com.shkgroups.config.properties.MercadoPagoProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

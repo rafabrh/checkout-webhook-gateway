@@ -1,7 +1,8 @@
 package com.shkgroups.payments;
 
-import com.shkgroups.common.PlanId;
-import com.shkgroups.config.MercadoPagoProperties;
+import com.shkgroups.orders.OrderStatus;
+import com.shkgroups.shared.domain.PlanId;
+import com.shkgroups.config.properties.MercadoPagoProperties;
 import com.shkgroups.orders.OrderEntity;
 import com.shkgroups.orders.OrderRepository;
 import com.shkgroups.payments.dto.CheckoutCreateRequest;

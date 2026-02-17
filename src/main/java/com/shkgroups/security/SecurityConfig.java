@@ -1,6 +1,6 @@
 package com.shkgroups.security;
 
-import com.shkgroups.config.ApiKeyProperties;
+import com.shkgroups.config.properties.ApiKeyProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

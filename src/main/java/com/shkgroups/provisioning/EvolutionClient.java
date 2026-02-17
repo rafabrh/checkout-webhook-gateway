@@ -1,6 +1,6 @@
 package com.shkgroups.provisioning;
 
-import com.shkgroups.config.EvolutionProperties;
+import com.shkgroups.config.properties.EvolutionProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

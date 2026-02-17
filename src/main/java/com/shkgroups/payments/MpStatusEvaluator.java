@@ -1,5 +1,7 @@
 package com.shkgroups.payments;
 
+import com.shkgroups.payments.domain.MpDecision;
+
 final class MpStatusEvaluator {
 
     private MpStatusEvaluator() {

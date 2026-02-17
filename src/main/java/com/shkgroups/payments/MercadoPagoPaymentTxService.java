@@ -1,6 +1,8 @@
 package com.shkgroups.payments;
 
-import com.shkgroups.common.PlanId;
+import com.shkgroups.orders.OrderStatus;
+import com.shkgroups.payments.domain.MpDecision;
+import com.shkgroups.shared.domain.PlanId;
 import com.shkgroups.orders.OrderRepository;
 import com.shkgroups.payments.dto.MercadoPagoWebhookResponse;
 import com.shkgroups.payments.mp.MercadoPagoClient;

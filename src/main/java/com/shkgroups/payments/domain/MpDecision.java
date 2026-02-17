@@ -1,4 +1,4 @@
-package com.shkgroups.payments;
+package com.shkgroups.payments.domain;
 
 public enum MpDecision {
     IGNORE,

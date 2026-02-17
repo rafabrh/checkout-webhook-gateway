@@ -1,7 +1,7 @@
 package com.shkgroups.payments.dto;
 
 
-import com.shkgroups.payments.MpDecision;
+import com.shkgroups.payments.domain.MpDecision;
 
 public record MercadoPagoWebhookResponse(
         MpDecision decision,

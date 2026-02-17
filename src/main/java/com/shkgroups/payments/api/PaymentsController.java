@@ -1,6 +1,8 @@
-package com.shkgroups.payments;
+package com.shkgroups.payments.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.shkgroups.payments.CheckoutService;
+import com.shkgroups.payments.MercadoPagoWebhookService;
 import com.shkgroups.payments.dto.CheckoutCreateRequest;
 import com.shkgroups.payments.dto.CheckoutCreateResponse;
 import com.shkgroups.payments.dto.MercadoPagoWebhookResponse;
