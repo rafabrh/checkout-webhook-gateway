@@ -1,4 +1,4 @@
-package com.shkgroups.config;
+package com.shkgroups.pairing;
 
 import com.shkgroups.pairing.PairingService;
 import lombok.RequiredArgsConstructor;

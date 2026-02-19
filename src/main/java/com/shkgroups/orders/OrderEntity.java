@@ -1,5 +1,6 @@
 package com.shkgroups.orders;
 
+import com.shkgroups.shared.domain.PlanId;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,8 +19,9 @@ public class OrderEntity {
     @Column(name = "order_id", nullable = false, unique = true, length = 64)
     private String orderId;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "plan", nullable = false, length = 64)
-    private String plan;
+    private PlanId plan;
 
     @Column(name = "channel", nullable = false, length = 32)
     private String channel;

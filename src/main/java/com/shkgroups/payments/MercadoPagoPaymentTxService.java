@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.math.BigDecimal;
 
 @Service
@@ -25,75 +26,83 @@ public class MercadoPagoPaymentTxService {
     public MercadoPagoWebhookResponse handle(String paymentId, MercadoPagoClient.MpPayment payment) {
 
         if (payment == null) {
-            return new MercadoPagoWebhookResponse(MpDecision.IGNORE, null,
-                    new MercadoPagoWebhookResponse.PaymentRef(paymentId), "mp_payment_null");
+            return new MercadoPagoWebhookResponse(
+                    MpDecision.IGNORE,
+                    null,
+                    new MercadoPagoWebhookResponse.PaymentRef(paymentId),
+                    "mp_payment_null"
+            );
         }
 
-        var orderId = payment.externalReference();
+        final String orderId = payment.externalReference();
         if (orderId == null || orderId.isBlank()) {
             upsertPayment(paymentId, null, payment);
-            return new MercadoPagoWebhookResponse(MpDecision.IGNORE, null,
-                    new MercadoPagoWebhookResponse.PaymentRef(paymentId), "no_external_reference");
+            return new MercadoPagoWebhookResponse(
+                    MpDecision.IGNORE,
+                    null,
+                    new MercadoPagoWebhookResponse.PaymentRef(paymentId),
+                    "no_external_reference"
+            );
         }
 
         var order = orderRepository.findByOrderId(orderId).orElse(null);
         if (order == null) {
             upsertPayment(paymentId, orderId, payment);
-            return new MercadoPagoWebhookResponse(MpDecision.IGNORE, null,
-                    new MercadoPagoWebhookResponse.PaymentRef(paymentId), "order_not_found");
-        }
-
-        if (order.getStatus() == OrderStatus.PROVISIONED) {
-            upsertPayment(paymentId, orderId, payment);
             return new MercadoPagoWebhookResponse(
                     MpDecision.IGNORE,
-                    new MercadoPagoWebhookResponse.OrderRef(orderId, order.getRemoteJid(), order.getPlan()),
+                    null,
+                    new MercadoPagoWebhookResponse.PaymentRef(paymentId),
+                    "order_not_found"
+            );
+        }
+
+        upsertPayment(paymentId, orderId, payment);
+
+        if (order.getStatus() == OrderStatus.PROVISIONED) {
+            return new MercadoPagoWebhookResponse(
+                    MpDecision.IGNORE,
+                    orderRef(orderId, order.getRemoteJid(), order.getPlan()),
                     new MercadoPagoWebhookResponse.PaymentRef(paymentId),
                     "already_provisioned"
             );
         }
 
         if (order.getStatus() == OrderStatus.CANCELED) {
-            upsertPayment(paymentId, orderId, payment);
             return new MercadoPagoWebhookResponse(
                     MpDecision.IGNORE,
-                    new MercadoPagoWebhookResponse.OrderRef(orderId, order.getRemoteJid(), order.getPlan()),
+                    orderRef(orderId, order.getRemoteJid(), order.getPlan()),
                     new MercadoPagoWebhookResponse.PaymentRef(paymentId),
                     "order_canceled"
             );
         }
 
         var decision = MpStatusEvaluator.decisionFor(payment.status());
-
-        upsertPayment(paymentId, orderId, payment);
-
         if (decision != MpDecision.PROVISION) {
             return new MercadoPagoWebhookResponse(
                     decision,
-                    new MercadoPagoWebhookResponse.OrderRef(orderId, order.getRemoteJid(), order.getPlan()),
+                    orderRef(orderId, order.getRemoteJid(), order.getPlan()),
                     new MercadoPagoWebhookResponse.PaymentRef(paymentId),
                     "mp_status:" + payment.status()
             );
         }
 
-        final PlanId plan;
-        try {
-            plan = PlanId.from(order.getPlan());
-        } catch (Exception e) {
-            log.warn("Invalid plan in order {}: {}", orderId, order.getPlan());
+        final PlanId plan = order.getPlan();
+        if (plan == null) {
+            log.warn("Order {} has null plan. Cannot validate amount.", orderId);
             return new MercadoPagoWebhookResponse(
                     MpDecision.IGNORE,
-                    new MercadoPagoWebhookResponse.OrderRef(orderId, order.getRemoteJid(), order.getPlan()),
+                    orderRef(orderId, order.getRemoteJid(), null),
                     new MercadoPagoWebhookResponse.PaymentRef(paymentId),
-                    "invalid_plan"
+                    "plan_null"
             );
         }
 
         var amount = payment.transactionAmount();
         if (amount == null || !amountMatches(plan.getPrice(), amount)) {
+            log.warn("Amount mismatch. orderId={} expected={} got={}", orderId, plan.getPrice(), amount);
             return new MercadoPagoWebhookResponse(
                     MpDecision.IGNORE,
-                    new MercadoPagoWebhookResponse.OrderRef(orderId, order.getRemoteJid(), order.getPlan()),
+                    orderRef(orderId, order.getRemoteJid(), plan),
                     new MercadoPagoWebhookResponse.PaymentRef(paymentId),
                     "amount_mismatch"
             );
@@ -107,15 +116,21 @@ public class MercadoPagoPaymentTxService {
 
         return new MercadoPagoWebhookResponse(
                 MpDecision.PROVISION,
-                new MercadoPagoWebhookResponse.OrderRef(orderId, order.getRemoteJid(), order.getPlan()),
+                orderRef(orderId, order.getRemoteJid(), plan),
                 new MercadoPagoWebhookResponse.PaymentRef(paymentId),
                 null
         );
     }
 
+    private static MercadoPagoWebhookResponse.OrderRef orderRef(String orderId, String remoteJid, PlanId plan) {
+        String planId = (plan == null) ? null : plan.getId();
+        return new MercadoPagoWebhookResponse.OrderRef(orderId, remoteJid, planId);
+    }
+
     private void upsertPayment(String paymentId, String orderId, MercadoPagoClient.MpPayment payment) {
         try {
             var existing = paymentRepository.findByPaymentId(paymentId).orElse(null);
+
             if (existing == null) {
                 paymentRepository.save(PaymentsEntity.builder()
                         .paymentId(paymentId)
@@ -123,12 +138,14 @@ public class MercadoPagoPaymentTxService {
                         .status(payment.status())
                         .amount(payment.transactionAmount())
                         .build());
-            } else {
-                existing.setOrderId(orderId);
-                existing.setStatus(payment.status());
-                existing.setAmount(payment.transactionAmount());
-                paymentRepository.save(existing);
+                return;
             }
+
+            existing.setOrderId(orderId);
+            existing.setStatus(payment.status());
+            existing.setAmount(payment.transactionAmount());
+            paymentRepository.save(existing);
+
         } catch (DataIntegrityViolationException e) {
             log.info("Payment {} upsert race; ignoring.", paymentId);
         }

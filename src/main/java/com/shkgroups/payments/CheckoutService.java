@@ -1,19 +1,20 @@
 package com.shkgroups.payments;
 
-import com.shkgroups.orders.OrderStatus;
-import com.shkgroups.shared.domain.PlanId;
 import com.shkgroups.config.properties.MercadoPagoProperties;
 import com.shkgroups.orders.OrderEntity;
 import com.shkgroups.orders.OrderRepository;
+import com.shkgroups.orders.OrderStatus;
 import com.shkgroups.payments.dto.CheckoutCreateRequest;
 import com.shkgroups.payments.dto.CheckoutCreateResponse;
 import com.shkgroups.payments.mp.MercadoPagoClient;
+import com.shkgroups.shared.domain.PlanId;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,16 +30,16 @@ public class CheckoutService {
     @Transactional
     public CheckoutCreateResponse createCheckout(CheckoutCreateRequest req) {
 
-        var plan = PlanId.from(req.plan());
+        final PlanId plan = req.plan();
 
-        var orderId = UUID.randomUUID().toString();
-        var now = OffsetDateTime.now();
+        final String orderId = UUID.randomUUID().toString();
+        final OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
 
         var order = OrderEntity.builder()
                 .orderId(orderId)
                 .instance(req.instance())
                 .remoteJid(req.remoteJid())
-                .plan(plan.getId())
+                .plan(plan)
                 .channel(req.channel())
                 .status(OrderStatus.CREATED)
                 .createdAt(now)
@@ -62,11 +63,14 @@ public class CheckoutService {
             throw new IllegalStateException("mp_notification_url_is_required");
         }
 
-        log.info("Creating MP preference. orderId={}, plan={}, notificationUrl={}", orderId, plan.getId(), notificationUrl);
+        log.info("Creating MP preference. orderId={}, plan={}, notificationUrl={}",
+                orderId, plan.getId(), notificationUrl);
 
         var pref = new MercadoPagoClient.MpPreferenceCreate(
                 List.of(new MercadoPagoClient.MpPreferenceItem(
-                        plan.getTitle(), 1, plan.getPrice()
+                        plan.getTitle(),
+                        1,
+                        plan.getPrice()
                 )),
                 orderId,
                 notificationUrl

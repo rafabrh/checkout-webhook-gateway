@@ -9,6 +9,6 @@ public record MercadoPagoWebhookResponse(
         PaymentRef payment,
         String reason
 ) {
-    public record OrderRef(String orderId, String remoteJid, String plan) {}
+    public record OrderRef(String orderId, String remoteJid, String planId) {}
     public record PaymentRef(String id) {}
 }

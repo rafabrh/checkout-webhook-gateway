@@ -1,66 +1,73 @@
 package com.shkgroups.shared.domain;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonValue;
 import lombok.Getter;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.text.Normalizer;
+import java.util.*;
 
 @Getter
 public enum PlanId {
 
-    AGENTE_IA_START("agente_ia_start", "AGENTE IA — Plano Start", new BigDecimal("99.90")),
-    AGENTE_IA_PRO("agente_ia_pro", "AGENTE IA — Plano Pro", new BigDecimal("199.90"));
+    AGENTE_IA_START("agente_ia_start", "AGENTE IA — Plano Start", new BigDecimal("99.90"),
+            "start", "agente ia start", "agente-ia-start"),
+    AGENTE_IA_PRO("agente_ia_pro", "AGENTE IA — Plano Pro", new BigDecimal("199.90"),
+            "pro", "agente ia pro", "agente-ia-pro");
 
     private final String id;
     private final String title;
     private final BigDecimal price;
+    private final Set<String> aliases;
 
-    PlanId(String id, String title, BigDecimal price) {
+    PlanId(String id, String title, BigDecimal price, String... aliases) {
         this.id = id;
         this.title = title;
         this.price = price;
+        this.aliases = Set.of(aliases);
     }
 
-    private static final Map<String, PlanId> LOOKUP = new HashMap<>();
+    private static final Map<String, PlanId> LOOKUP = buildLookup();
 
-    static {
+    private static Map<String, PlanId> buildLookup() {
+        var map = new HashMap<String, PlanId>();
         for (var p : values()) {
-            LOOKUP.put(normalize(p.id), p);
-            LOOKUP.put(normalize(p.name()), p);
-
-            if (p == AGENTE_IA_START) {
-                LOOKUP.put(normalize("start"), p);
-                LOOKUP.put(normalize("agente ia start"), p);
-                LOOKUP.put(normalize("agente_ia_start"), p);
-                LOOKUP.put(normalize("agente-ia-start"), p);
-            }
-            if (p == AGENTE_IA_PRO) {
-                LOOKUP.put(normalize("pro"), p);
-                LOOKUP.put(normalize("agente ia pro"), p);
-                LOOKUP.put(normalize("agente_ia_pro"), p);
-                LOOKUP.put(normalize("agente-ia-pro"), p);
-            }
+            put(map, p, p.id);
+            put(map, p, p.name());
+            for (var a : p.aliases) put(map, p, a);
         }
+        return Collections.unmodifiableMap(map);
     }
 
-    public static PlanId from(String raw) {
-        if (raw == null || raw.isBlank()) {
-            throw new IllegalArgumentException("plan_is_required");
-        }
-        var key = normalize(raw);
-        var plan = LOOKUP.get(key);
-        if (plan == null) {
-            throw new IllegalArgumentException("invalid_plan: " + raw);
-        }
-        return plan;
+    private static void put(Map<String, PlanId> map, PlanId p, String raw) {
+        if (raw == null) return;
+        map.put(normalize(raw), p);
     }
 
     private static String normalize(String s) {
         var v = s.trim().toLowerCase(Locale.ROOT);
-        v = v.replace('-', '_').replace(' ', '_');
-        while (v.contains("__")) v = v.replace("__", "_");
+        v = Normalizer.normalize(v, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        v = v.replace('_', '-');
+        v = v.replaceAll("\\s+", "-");
+        v = v.replaceAll("-+", "-");
         return v;
+    }
+
+    public static PlanId from(String raw) {
+        if (raw == null || raw.isBlank()) throw new IllegalArgumentException("plan_required");
+        var plan = LOOKUP.get(normalize(raw));
+        if (plan == null) throw new IllegalArgumentException("invalid_plan");
+        return plan;
+    }
+
+    @JsonCreator(mode = JsonCreator.Mode.DELEGATING)
+    public static PlanId json(String raw) {
+        return from(raw);
+    }
+
+    @JsonValue
+    public String jsonValue() {
+        return id;
     }
 }
