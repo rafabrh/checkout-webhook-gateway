@@ -17,7 +17,6 @@ public class PairingInternalController {
     @Value("${app.public-base-url}")
     private String publicBaseUrl; // ex: https://agent.shkgroups.com
 
-    // NOVO: usado no checkout (aprovou pagamento -> cria sessão + link)
     @PostMapping("/orders/{orderId}/create")
     public ResponseEntity<PairingLinkResponse> create(
             @PathVariable String orderId,
@@ -31,7 +30,6 @@ public class PairingInternalController {
         ));
     }
 
-    // MANTIDO: seu endpoint atual
     @PostMapping("/orders/{orderId}/resend")
     public ResponseEntity<PairingLinkResponse> resend(
             @PathVariable String orderId,
@@ -44,7 +42,6 @@ public class PairingInternalController {
         ));
     }
 
-    // NOVO: n8n chama depois de "Conectar instancia" na Evolution
     @PostMapping("/tokens/{token}/ready")
     public ResponseEntity<PairingStatusResponse> ready(
             @PathVariable String token,
@@ -60,14 +57,12 @@ public class PairingInternalController {
         return ResponseEntity.ok(PairingStatusResponse.from(session));
     }
 
-    // NOVO: webhook/evento da Evolution marca conectado (PAIRED)
     @PostMapping("/instances/{instance}/paired")
     public ResponseEntity<PairingStatusResponse> pairedByInstance(@PathVariable String instance) {
         var session = pairingService.markPairedByInstance(instance);
         return ResponseEntity.ok(PairingStatusResponse.from(session));
     }
 
-    // NOVO: polling pra página /pair/{token}
     @GetMapping("/tokens/{token}")
     public ResponseEntity<PairingStatusResponse> get(@PathVariable String token) {
         var session = pairingService.validateForView(token);
@@ -79,10 +74,10 @@ public class PairingInternalController {
     public record PairingCreateRequest(String instance, String remoteJid) {}
 
     public record PairingReadyRequest(
-            String qrPayload,   // Evolution: "code" (payload)
-            String pairingCode, // Evolution: "pairingCode"
-            String qrBase64,    // opcional
-            String qrUrl        // opcional
+            String qrPayload,
+            String pairingCode,
+            String qrBase64,
+            String qrUrl
     ) {}
 
     public record PairingStatusResponse(

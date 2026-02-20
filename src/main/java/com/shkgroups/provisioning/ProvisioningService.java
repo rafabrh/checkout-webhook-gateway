@@ -38,14 +38,19 @@ public class ProvisioningService {
 
         assertOrderProvisionable(order.getStatus());
 
-        var payment = paymentRepository.findByPaymentId(req.paymentId())
+        paymentRepository.findByPaymentId(req.paymentId())
                 .orElseThrow(() -> domainError(HttpStatus.NOT_FOUND, "payment_not_found"));
-
 
         if (req.plan() != null && req.plan() != order.getPlan()) {
             log.warn("Plan mismatch. orderId={} req.plan={} order.plan={}",
                     order.getOrderId(), req.plan(), order.getPlan());
             throw domainError(HttpStatus.CONFLICT, "plan_mismatch");
+        }
+
+        if (req.remoteJid() != null && !req.remoteJid().isBlank() && order.getRemoteJid() != null) {
+            if (!req.remoteJid().trim().equals(order.getRemoteJid().trim())) {
+                throw domainError(HttpStatus.CONFLICT, "remote_jid_mismatch");
+            }
         }
 
         expireNonPairedSessions(order.getOrderId());
@@ -56,8 +61,15 @@ public class ProvisioningService {
                 .orElseThrow(() -> domainError(HttpStatus.INTERNAL_SERVER_ERROR,
                         "pairing_session_not_found_after_resend"));
 
-        var pairingUrl = agentProps.getBaseUrl() + link.urlPath();
+        var pairingInstance = computePairingInstance(order.getOrderId());
+        session.setInstance(pairingInstance);
+        session.setQrBase64(null);
+        session.setQrUrl(null);
+        session.setStatus(PairingStatus.NEW);
+        session.touchUpdate();
+        pairingRepository.save(session);
 
+        var pairingUrl = joinUrl(agentProps.getBaseUrl(), link.urlPath());
         var messageText = "Pagamento confirmado ✅ Pareie aqui: " + pairingUrl;
 
         if (order.getStatus() == OrderStatus.PAID) {
@@ -66,6 +78,9 @@ public class ProvisioningService {
             orderRepository.save(order);
         }
 
+        log.info("Provision pairing ready. orderId={} pairingInstance={} expiresAt={}",
+                order.getOrderId(), pairingInstance, session.getExpiresAt());
+
         return new ProvisionPairingResponse(
                 order.getOrderId(),
                 order.getRemoteJid(),
@@ -73,6 +88,20 @@ public class ProvisioningService {
                 messageText,
                 session.getExpiresAt()
         );
+    }
+
+    private static String computePairingInstance(String orderId) {
+        var safe = orderId == null ? "" : orderId.replace("-", "").toLowerCase();
+        if (safe.length() > 24) safe = safe.substring(0, 24);
+        return "shk_" + safe;
+    }
+
+    private static String joinUrl(String base, String path) {
+        if (base == null || base.isBlank()) throw new IllegalStateException("agent_base_url_is_required");
+        if (path == null || path.isBlank()) return base;
+        var b = base.endsWith("/") ? base.substring(0, base.length() - 1) : base;
+        var p = path.startsWith("/") ? path : "/" + path;
+        return b + p;
     }
 
     private void assertOrderProvisionable(OrderStatus status) {
@@ -112,6 +141,5 @@ public class ProvisioningService {
         public String getCode() {
             return code;
         }
-
     }
 }

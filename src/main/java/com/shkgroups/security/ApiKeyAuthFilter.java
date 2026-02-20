@@ -49,7 +49,7 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
         boolean actuatorAllowed =
                 matcher.match("/actuator/health", path) ||
-                        matcher.match("/actuator/info", path);
+                matcher.match("/actuator/info", path);
 
         boolean pairingAllowed = matcher.match("/pair/**", path);
 

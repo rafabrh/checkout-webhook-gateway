@@ -26,8 +26,6 @@ public class PairingService {
 
     public PairingLink create(String orderId, String instance, String remoteJid, Duration ttl) {
         validateTtl(ttl);
-        if (orderId == null || orderId.isBlank()) throw new IllegalArgumentException("invalid_order_id");
-        if (instance == null || instance.isBlank()) throw new IllegalArgumentException("invalid_instance");
 
         var now = OffsetDateTime.now();
 
@@ -37,16 +35,12 @@ public class PairingService {
 
             try {
                 pairingRepository.save(PairingSessionEntity.builder()
-                        .orderId(orderId.trim())
-                        .instance(instance.trim())
-                        .remoteJid(normalizeRemoteJid(remoteJid))
+                        .orderId(orderId)
+                        .instance(instance)
+                        .remoteJid(remoteJid)
                         .rawToken(null)
                         .tokenHash(tokenHash)
                         .status(PairingStatus.NEW)
-                        .qrBase64(null)
-                        .qrUrl(null)
-                        .qrPayload(null)
-                        .pairingCode(null)
                         .createdAt(now)
                         .updatedAt(now)
                         .expiresAt(now.plus(ttl))
@@ -65,10 +59,9 @@ public class PairingService {
     @Transactional
     public PairingLink resendLink(String orderId, Duration ttl) {
         validateTtl(ttl);
-        if (orderId == null || orderId.isBlank()) throw new IllegalArgumentException("invalid_order_id");
 
         var now = OffsetDateTime.now();
-        var session = pairingRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId.trim())
+        var session = pairingRepository.findTopByOrderIdOrderByCreatedAtDesc(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("order_not_found"));
 
         if (session.getStatus() == PairingStatus.PAIRED) {
@@ -83,12 +76,8 @@ public class PairingService {
                 session.setTokenHash(tokenHash);
                 session.setRawToken(null);
                 session.setExpiresAt(now.plus(ttl));
-
                 session.setQrBase64(null);
                 session.setQrUrl(null);
-                session.setQrPayload(null);
-                session.setPairingCode(null);
-
                 session.setStatus(PairingStatus.NEW);
                 session.touchUpdate();
 
@@ -129,16 +118,16 @@ public class PairingService {
 
         if (session.getStatus() == PairingStatus.PAIRED) return session;
 
-        if (qrPayload != null && !qrPayload.isBlank()) session.setQrPayload(qrPayload.trim());
-        if (pairingCode != null && !pairingCode.isBlank()) session.setPairingCode(pairingCode.trim());
+        if (qrPayload != null && !qrPayload.isBlank()) session.setQrPayload(qrPayload);
+        if (pairingCode != null && !pairingCode.isBlank()) session.setPairingCode(pairingCode);
 
-        // opcional (caso você gere imagem)
-        if (qrBase64 != null && !qrBase64.isBlank()) session.setQrBase64(qrBase64.trim());
-        if (qrUrl != null && !qrUrl.isBlank()) session.setQrUrl(qrUrl.trim());
+        session.setQrBase64(qrBase64);
+        session.setQrUrl(qrUrl);
 
         if (session.getStatus() == PairingStatus.NEW || session.getStatus() == PairingStatus.FAILED) {
             session.setStatus(PairingStatus.READY);
         }
+
         session.touchUpdate();
         return pairingRepository.save(session);
     }
@@ -155,18 +144,15 @@ public class PairingService {
 
     @Transactional(noRollbackFor = IllegalArgumentException.class)
     public PairingSessionEntity markPairedByInstance(String instance) {
-        if (instance == null || instance.isBlank()) throw new IllegalArgumentException("invalid_instance");
+        if (instance == null || instance.isBlank()) throw new IllegalArgumentException("instance_is_required");
 
         var session = pairingRepository.findTopByInstanceOrderByCreatedAtDesc(instance.trim())
-                .orElseThrow(() -> new IllegalArgumentException("pairing_not_found"));
+                .orElseThrow(() -> new IllegalArgumentException("pairing_session_not_found_for_instance"));
 
         expireIfNeeded(session);
 
-        if (session.getStatus() != PairingStatus.PAIRED) {
-            session.setStatus(PairingStatus.PAIRED);
-            session.touchUpdate();
-        }
-
+        session.setStatus(PairingStatus.PAIRED);
+        session.touchUpdate();
         return pairingRepository.save(session);
     }
 
@@ -236,12 +222,6 @@ public class PairingService {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private static String normalizeRemoteJid(String v) {
-        if (v == null || v.isBlank()) return null;
-        var s = v.trim();
-        return s.contains("@") ? s : (s + "@s.whatsapp.net");
     }
 
     public record PairingLink(String token, String urlPath) {}
