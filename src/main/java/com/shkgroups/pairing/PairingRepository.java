@@ -11,4 +11,6 @@ public interface PairingRepository extends JpaRepository<PairingSessionEntity, L
     Optional<PairingSessionEntity> findTopByOrderIdOrderByCreatedAtDesc(String orderId);
 
     Optional<PairingSessionEntity> findByOrderId(String orderId);
+
+    Optional<PairingSessionEntity> findTopByInstanceOrderByCreatedAtDesc(String instance);
 }

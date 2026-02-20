@@ -57,6 +57,12 @@ public class PairingSessionEntity {
     @Column(name = "raw_token", length = 256)
     private String rawToken;
 
+    @Column(name = "qr_payload")
+    private String qrPayload;
+
+    @Column(name = "pairing_code", length = 128)
+    private String pairingCode;
+
 
     @PrePersist
     void prePersist() {
