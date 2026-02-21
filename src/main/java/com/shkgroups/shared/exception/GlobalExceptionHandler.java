@@ -1,5 +1,6 @@
 package com.shkgroups.shared.exception;
 
+import com.shkgroups.provisioning.ProvisioningService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -12,6 +13,16 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 @Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    @ExceptionHandler(ProvisioningService.ProvisioningException.class)
+    public ProblemDetail provisioning(ProvisioningService.ProvisioningException ex, HttpServletRequest req) {
+        var pd = ProblemDetail.forStatus(ex.getHttpStatus());
+        pd.setTitle("Provisioning Error");
+        pd.setDetail(ex.getCode());
+        pd.setProperty("error", "provisioning_error");
+        pd.setProperty("path", req.getRequestURI());
+        return pd;
+    }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ProblemDetail badRequest(IllegalArgumentException ex) {
@@ -49,16 +60,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ProblemDetail generic(Exception ex, HttpServletRequest req) {
-        log.error("Unhandled error on {} {}",
-                req.getMethod(), req.getRequestURI(), ex);
+        log.error("Unhandled error on {} {}", req.getMethod(), req.getRequestURI(), ex);
 
         var pd = ProblemDetail.forStatus(HttpStatus.INTERNAL_SERVER_ERROR);
         pd.setTitle("Internal Error");
         pd.setDetail("unexpected_error");
-
         pd.setProperty("exception", ex.getClass().getName());
         pd.setProperty("message", ex.getMessage());
-
         return pd;
     }
 

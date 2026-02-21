@@ -117,7 +117,6 @@ public class PairingService {
         expireIfNeeded(session);
 
         if (session.getStatus() == PairingStatus.PAIRED) return session;
-
         if (qrPayload != null && !qrPayload.isBlank()) session.setQrPayload(qrPayload);
         if (pairingCode != null && !pairingCode.isBlank()) session.setPairingCode(pairingCode);
 

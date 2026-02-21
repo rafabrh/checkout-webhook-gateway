@@ -129,8 +129,7 @@ public class MercadoPagoPaymentTxService {
 
     private void upsertPayment(String paymentId, String orderId, MercadoPagoClient.MpPayment payment) {
         try {
-            var existing = paymentRepository.findByPaymentId(paymentId).orElse(null);
-
+            var existing = paymentRepository.findByPaymentIdForUpdate(paymentId).orElse(null);
             if (existing == null) {
                 paymentRepository.save(PaymentsEntity.builder()
                         .paymentId(paymentId)
@@ -138,19 +137,24 @@ public class MercadoPagoPaymentTxService {
                         .status(payment.status())
                         .amount(payment.transactionAmount())
                         .build());
-                return;
+            } else {
+                existing.setOrderId(orderId);
+                existing.setStatus(payment.status());
+                existing.setAmount(payment.transactionAmount());
+                paymentRepository.save(existing);
             }
-
-            existing.setOrderId(orderId);
-            existing.setStatus(payment.status());
-            existing.setAmount(payment.transactionAmount());
-            paymentRepository.save(existing);
-
         } catch (DataIntegrityViolationException e) {
-            log.info("Payment {} upsert race; ignoring.", paymentId);
+            var existing = paymentRepository.findByPaymentIdForUpdate(paymentId).orElse(null);
+            if (existing != null) {
+                existing.setOrderId(orderId);
+                existing.setStatus(payment.status());
+                existing.setAmount(payment.transactionAmount());
+                paymentRepository.save(existing);
+            } else {
+                log.info("Payment {} upsert race; ignoring.", paymentId);
+            }
         }
     }
-
     private static boolean amountMatches(BigDecimal expected, BigDecimal got) {
         if (expected == null || got == null) return false;
         return expected.compareTo(got) == 0;
