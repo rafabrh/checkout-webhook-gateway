@@ -46,11 +46,18 @@ public enum PlanId {
     }
 
     private static String normalize(String s) {
-        var v = s.trim().toLowerCase(Locale.ROOT);
-        v = Normalizer.normalize(v, Normalizer.Form.NFD).replaceAll("\\p{M}", "");
+        if (s == null) return "";
+
+        String v = s.strip().toLowerCase(Locale.ROOT);
+
+        v = Normalizer.normalize(v, Normalizer.Form.NFKD)
+                .replaceAll("\\p{M}+", "");
         v = v.replace('_', '-');
-        v = v.replaceAll("\\s+", "-");
-        v = v.replaceAll("-+", "-");
+        v = v.replaceAll("[\\p{Z}\\s]+", "-");
+        v = v.replaceAll("[^a-z0-9-]", "");
+        v = v.replaceAll("-{2,}", "-")
+                .replaceAll("(^-)|(-$)", "");
+
         return v;
     }
 
