@@ -38,6 +38,8 @@ public class SecurityConfig {
                             .permitAll();
                     auth.requestMatchers(HttpMethod.POST, "/v1/payments/mercadopago/notification")
                             .permitAll();
+                    auth.requestMatchers(HttpMethod.GET, "/v1/payments/mercadopago/notification")
+                            .permitAll();
 
                     if (isDev) {
                         auth.requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**")

@@ -1,0 +1,12 @@
+cd /mnt/c/repositorio/com.shkgroups.agent
+
+# instalar ferramentas (se ainda não tiver)
+sudo apt-get update
+sudo apt-get install -y dos2unix perl
+
+# corrigir CRLF (Windows) e garantir executável
+dos2unix codex/ralph-loop.sh codex/*.md codex/tasks/*.md
+chmod +x codex/ralph-loop.sh
+
+
+REASONING=high ./codex/ralph-loop.sh plan

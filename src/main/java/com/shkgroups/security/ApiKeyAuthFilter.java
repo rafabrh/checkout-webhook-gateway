@@ -55,7 +55,8 @@ public class ApiKeyAuthFilter extends OncePerRequestFilter {
 
         boolean mpWebhookAllowed =
                 matcher.match("/v1/payments/mercadopago/notification", path)
-                        && "POST".equalsIgnoreCase(request.getMethod());
+                        && ("POST".equalsIgnoreCase(request.getMethod())
+                        || "GET".equalsIgnoreCase(request.getMethod()));
 
         return swaggerAllowed || actuatorAllowed || pairingAllowed || mpWebhookAllowed;
     }

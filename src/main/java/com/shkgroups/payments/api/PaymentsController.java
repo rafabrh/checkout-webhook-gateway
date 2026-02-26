@@ -1,8 +1,8 @@
 package com.shkgroups.payments.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.shkgroups.payments.CheckoutService;
-import com.shkgroups.payments.MercadoPagoWebhookService;
+import com.shkgroups.application.payments.usecase.CreateCheckoutUseCase;
+import com.shkgroups.application.payments.usecase.ProcessMpWebhookUseCase;
 import com.shkgroups.payments.dto.CheckoutCreateRequest;
 import com.shkgroups.payments.dto.CheckoutCreateResponse;
 import com.shkgroups.payments.dto.MercadoPagoWebhookResponse;
@@ -16,12 +16,12 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/v1/payments")
 public class PaymentsController {
 
-    private final CheckoutService checkoutService;
-    private final MercadoPagoWebhookService webhookService;
+    private final CreateCheckoutUseCase createCheckoutUseCase;
+    private final ProcessMpWebhookUseCase processMpWebhookUseCase;
 
     @PostMapping("/checkout")
     public CheckoutCreateResponse checkout(@RequestBody @Valid CheckoutCreateRequest req) {
-        return checkoutService.createCheckout(req);
+        return createCheckoutUseCase.execute(req);
     }
 
     @RequestMapping(
@@ -34,7 +34,7 @@ public class PaymentsController {
             @RequestBody(required = false) JsonNode body
     ) {
         var paymentId = extractPaymentId(body, query);
-        return webhookService.process(token, paymentId);
+        return processMpWebhookUseCase.execute(token, paymentId);
     }
 
     private String extractPaymentId(JsonNode body, MultiValueMap<String, String> query) {
