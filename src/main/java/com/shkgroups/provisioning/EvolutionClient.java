@@ -61,8 +61,11 @@ public class EvolutionClient {
     }
 
     private void applyAuth(HttpHeaders h) {
-        if (props.getApiKey() != null && !props.getApiKey().isBlank()) {
-            h.set("x-api-key", props.getApiKey().trim());
+        String key = props.getApiKey();
+        if (key != null && !key.isBlank()) {
+            String v = key.trim();
+            h.set("apikey", v);
+            h.set("x-api-key", v);
         }
     }
 
